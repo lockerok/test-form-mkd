@@ -6,60 +6,27 @@
 <title>Текст заявки//Фитаревская 15к2</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
-  background:#2a2420;
-  color:#fff;
-  min-height:100vh;
-  padding:20px;
-}
-.page-title{
-  font-size:28px;
-  font-weight:700;
-  margin-bottom:20px;
-  padding:0 10px;
-}
-.card{
-  max-width:600px;
-  margin:0 auto;
-  background:#1e1a16;
-  border-radius:16px;
-  padding:30px 25px;
-}
-.info{
-  font-size:14px;
-  color:#b0a8a0;
-  margin-bottom:20px;
-  line-height:1.6;
-}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#2a2420;color:#fff;min-height:100vh;padding:16px}
+.page-title{font-size:clamp(20px,5vw,28px);font-weight:700;margin-bottom:20px;text-align:center;padding:0 10px}
+.card{max-width:600px;margin:0 auto;background:#1e1a16;border-radius:16px;padding:30px 25px}
+.info{font-size:14px;color:#b0a8a0;margin-bottom:20px;line-height:1.6}
 .info b{color:#ff9800}
-.text-box{
-  background:#2a2420;
-  border:1px solid #4a4540;
-  border-radius:10px;
-  padding:18px;
-  font-size:15px;
-  line-height:1.6;
-  white-space:pre-wrap;
-  margin-bottom:20px;
-  color:#f0ece8;
-}
+.text-box{background:#2a2420;border:1px solid #4a4540;border-radius:10px;padding:18px;font-size:15px;line-height:1.6;white-space:pre-wrap;margin-bottom:20px;color:#f0ece8;word-wrap:break-word}
+.request-input{width:100%;padding:14px;background:#2a2420;border:1px solid #4a4540;border-radius:10px;color:#fff;font-size:16px;margin-bottom:15px;outline:none}
+.request-input:focus{border-color:#ff9800}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap}
-.btn{
-  flex:1;
-  min-width:140px;
-  padding:14px;
-  border:none;
-  border-radius:10px;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  transition:background .15s;
-}
+.btn{flex:1;min-width:140px;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;min-height:50px}
 .btn-copy{background:#4caf50;color:#fff}
-.btn-copy:hover{background:#66bb6a}
+.btn-copy:active{background:#3d8b40}
+.btn-send{background:#2196f3;color:#fff}
+.btn-send:active{background:#1976d2}
+.btn-send:disabled{background:#555;cursor:not-allowed}
 .btn-back{background:#ff9800;color:#1a1410}
-.btn-back:hover{background:#ffb74d}
+.btn-back:active{background:#e68a00}
+.status{margin-top:15px;padding:12px;border-radius:8px;font-size:14px;display:none}
+.status.ok{display:block;background:#1b3a1b;color:#8f8}
+.status.err{display:block;background:#3a1b1b;color:#f88}
+@media(max-width:480px){body{padding:10px}.card{padding:22px 16px;border-radius:14px}.text-box{padding:14px;font-size:14px}.btn-row{flex-direction:column}.btn{width:100%;min-width:0}}
 </style>
 </head>
 <body>
@@ -69,21 +36,33 @@ body{
 <div class="card">
   <div class="info" id="info"></div>
   <div class="text-box" id="textBox"></div>
-  <div class="btn-row">
+
+  <div class="btn-row" style="margin-bottom:20px">
     <button class="btn btn-copy" onclick="copyText()">📋 Скопировать текст</button>
-    <button class="btn btn-back" onclick="history.back()">← Назад</button>
   </div>
+
+  <hr style="border:none;border-top:1px solid #4a4540;margin:20px 0">
+
+  <p style="margin-bottom:10px;color:#e0dcd8;font-size:14px">
+    📝 После отправки текста в УК/ЖИ/Управу — введите номер заявки и нажмите «Отправить в таблицу», чтобы сохранить данные:
+  </p>
+  <input type="text" class="request-input" id="requestNumber" placeholder="Например: 12345678 или Н-2026-001">
+  <button class="btn btn-send" id="sendBtn" onclick="sendToSheet()">📤 Отправить в таблицу</button>
+  <div class="status" id="status"></div>
+
+  <button class="btn btn-back" onclick="history.back()" style="margin-top:15px">← Назад</button>
 </div>
 
 <script>
-// === СЛОВАРЬ ТЕКСТОВ ===
+// ⚠️ ВСТАВЬТЕ СЮДА URL ВАШЕГО GOOGLE APPS SCRIPT (см. инструкцию ниже)
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQzteepzdDJcHET-L8IyO3M25y8POyETmRRF7WQunJi8cS1KD-EIYfCN9mGc2T-S4G3g/exec';
+
 const TEXTS = {
   gvs_uk:`В квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, наблюдается протечка горячего водоснабжения (ГВС).
 
 Прошу работников УК ГБУ «Жилищник района Коммунарка» срочно устранить проблему.
 
 Дата обращения: {DATE}`,
-
   gvs_gzhi:`Прошу срочно принять меры по бездействию работников УК ГБУ «Жилищник района Коммунарка».
 
 По квартире №{APT} (г. Москва, ул. Фитаревская, д. 15, корп. 2) была подана заявка на устранение протечки ГВС, однако инцидент не устраняется в установленный срок.
@@ -91,19 +70,16 @@ const TEXTS = {
 Прошу провести проверку и выдать предписание об устранении нарушения.
 
 Дата обращения: {DATE}`,
-
   gvs_uprava:`Прошу оказать содействие в устранении протечки горячего водоснабжения (ГВС) в квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2.
 
 Прошу направить запрос в УК ГБУ «Жилищник района Коммунарка» для устранения проблемы.
 
 Дата обращения: {DATE}`,
-
   hvs_uk:`В квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, наблюдается протечка холодного водоснабжения (ХВС).
 
 Прошу работников УК ГБУ «Жилищник района Коммунарка» срочно устранить проблему.
 
 Дата обращения: {DATE}`,
-
   hvs_gzhi:`Прошу срочно принять меры по бездействию работников УК ГБУ «Жилищник района Коммунарка».
 
 По квартире №{APT} (г. Москва, ул. Фитаревская, д. 15, корп. 2) была подана заявка на устранение протечки ХВС, однако инцидент не устраняется в установленный срок.
@@ -111,59 +87,50 @@ const TEXTS = {
 Прошу провести проверку и выдать предписание об устранении нарушения.
 
 Дата обращения: {DATE}`,
-
   hvs_uprava:`Прошу оказать содействие в устранении протечки холодного водоснабжения (ХВС) в квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2.
 
 Прошу направить запрос в УК ГБУ «Жилищник района Коммунарка» для устранения проблемы.
 
 Дата обращения: {DATE}`,
-
-  heating_uk:`В квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, наблюдается проблема с отоплением: батареи не греют / недостаточно греют.
+  heating_uk:`В квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, наблюдается проблема с отоплением.
 
 Прошу работников УК ГБУ «Жилищник района Коммунарка» срочно устранить проблему. Температура в помещении должна соответствовать нормативным требованиям (не ниже +18°C, в угловых комнатах не ниже +20°C согласно Постановлению Правительства РФ №354).
 
 Дата обращения: {DATE}`,
-
   heating_gzhi:`Прошу срочно принять меры по бездействию работников УК ГБУ «Жилищник района Коммунарка».
 
-По квартире №{APT} (г. Москва, ул. Фитаревская, д. 15, корп. 2) была подана заявка по проблеме с отоплением, однако инцидент не устраняется в установленный срок. Температура в помещении не соответствует нормативным требованиям.
+По квартире №{APT} (г. Москва, ул. Фитаревская, д. 15, корп. 2) была подана заявка по проблеме с отоплением, однако инцидент не устраняется в установленный срок.
 
 Прошу провести проверку и выдать предписание об устранении нарушения.
 
 Дата обращения: {DATE}`,
-
   heating_uprava:`Прошу оказать содействие в решении проблемы с отоплением в квартире №{APT} по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2.
 
 Прошу направить запрос в УК ГБУ «Жилищник района Коммунарка» для устранения нарушения нормативных требований по температуре в жилом помещении.
 
 Дата обращения: {DATE}`,
-
   garbage_uk:`В подъезде дома по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, забит мусоропровод. Мусор не уходит, создаётся антисанитарная обстановка.
 
 Прошу работников УК ГБУ «Жилищник района Коммунарка» срочно устранить проблему.
 
 Дата обращения: {DATE}`,
-
   garbage_gzhi:`Прошу срочно принять меры по бездействию работников УК ГБУ «Жилищник района Коммунарка».
 
-По адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, была подана заявка по факту засора мусоропровода, однако инцидент не устраняется в установленный срок. Создаётся антисанитарная обстановка.
+По адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, была подана заявка по факту засора мусоропровода, однако инцидент не устраняется в установленный срок.
 
 Прошу провести проверку и выдать предписание об устранении нарушения.
 
 Дата обращения: {DATE}`,
-
   garbage_uprava:`Прошу оказать содействие в устранении засора мусоропровода в доме по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2.
 
 Прошу направить запрос в УК ГБУ «Жилищник района Коммунарка» для устранения проблемы.
 
 Дата обращения: {DATE}`,
-
   cleaning_uk:`В подъезде дома по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, не проводилась уборка на этаже. Нарушаются Правила и нормы технической эксплуатации жилищного фонда (Постановление Госстроя РФ №170 от 27.09.2003).
 
 Прошу работников УК ГБУ «Жилищник района Коммунарка» срочно устранить проблему.
 
 Дата обращения: {DATE}`,
-
   cleaning_gzhi:`Прошу срочно принять меры по бездействию работников УК ГБУ «Жилищник района Коммунарка».
 
 По адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2, была подана заявка по факту неуборки этажа, однако инцидент не устраняется в установленный срок.
@@ -171,7 +138,6 @@ const TEXTS = {
 Прошу провести проверку и выдать предписание об устранении нарушения.
 
 Дата обращения: {DATE}`,
-
   cleaning_uprava:`Прошу оказать содействие в организации уборки этажа в доме по адресу: г. Москва, ул. Фитаревская, д. 15, корп. 2.
 
 Прошу направить запрос в УК ГБУ «Жилищник района Коммунарка» для устранения нарушения.
@@ -199,6 +165,7 @@ const recipient = params.get('recipient');
 
 if(!apt || !problem || !recipient){
   document.getElementById('textBox').textContent = 'Ошибка: не переданы параметры. Вернитесь назад и заполните форму.';
+  document.getElementById('sendBtn').style.display = 'none';
 } else {
   const key = problem + '_' + recipient;
   let text = TEXTS[key];
@@ -219,16 +186,64 @@ if(!apt || !problem || !recipient){
 function copyText(){
   const text = document.getElementById('textBox').textContent;
   navigator.clipboard.writeText(text).then(()=>{
-    alert('Текст скопирован! Теперь вставьте его в ГИС ЖКХ, электронную почту или распечатайте.');
+    alert('Текст скопирован!');
   }).catch(()=>{
-    // Fallback для старых браузеров
     const ta = document.createElement('textarea');
     ta.value = text;
+    ta.style.position='fixed';ta.style.left='-9999px';
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand('copy');
+    try{document.execCommand('copy');alert('Текст скопирован!')}
+    catch(e){alert('Не удалось скопировать. Выделите текст вручную.');}
     document.body.removeChild(ta);
-    alert('Текст скопирован!');
+  });
+}
+
+function sendToSheet(){
+  const reqNum = document.getElementById('requestNumber').value.trim();
+  if(!reqNum){
+    alert('Введите номер заявки');
+    return;
+  }
+  if(SCRIPT_URL === 'ВСТАВЬТЕ_СЮДА_URL_СКРИПТА'){
+    alert('Ошибка: не указан URL скрипта в коде страницы. См. инструкцию по настройке Google Sheets.');
+    return;
+  }
+
+  const btn = document.getElementById('sendBtn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Отправка...';
+  status.className = 'status';
+  status.style.display = 'none';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      apartment: '№' + apt,
+      problem: NAMES[problem],
+      recipient: REC_NAMES[recipient],
+      requestNumber: reqNum,
+      sentAt: new Date().toLocaleString('ru-RU')
+    })
+  })
+  .then(()=>{
+    status.textContent = '✅ Данные сохранены в таблицу!';
+    status.className = 'status ok';
+    btn.textContent = '✅ Отправлено';
+    document.getElementById('requestNumber').value = '';
+    setTimeout(()=>{
+      btn.disabled = false;
+      btn.textContent = '📤 Отправить в таблицу';
+    }, 3000);
+  })
+  .catch(err=>{
+    status.textContent = '❌ Ошибка: ' + err.message;
+    status.className = 'status err';
+    btn.disabled = false;
+    btn.textContent = '📤 Отправить в таблицу';
   });
 }
 </script>
