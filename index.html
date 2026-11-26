@@ -23,7 +23,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#2a2420;c
 .form-label{display:block;font-size:14px;font-weight:600;margin-bottom:8px;color:#e0dcd8}
 .form-label .req{color:#ff6b6b;margin-left:2px}
 .form-label .opt{color:#888;font-weight:400;font-size:12px;margin-left:4px}
-select,input[type="text"],input[type="date"],textarea{width:100%;padding:12px 14px;background:#2a2420;border:1px solid #4a4540;border-radius:8px;color:#fff;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;font-family:inherit}
+select,input[type="text"],input[type="number"],input[type="date"],textarea{width:100%;padding:12px 14px;background:#2a2420;border:1px solid #4a4540;border-radius:8px;color:#fff;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;font-family:inherit}
 select:focus,input:focus,textarea:focus{border-color:#ff9800}
 select option{background:#2a2420;color:#fff}
 input.error,select.error{border-color:#ff6b6b;background:#3a2020}
@@ -59,6 +59,7 @@ input.error,select.error{border-color:#ff6b6b;background:#3a2020}
 .status-msg.err{display:block;background:#3a1b1b;color:#f88}
 .footer{margin-top:20px;padding:16px;text-align:center;font-size:12px;color:#888;line-height:1.6}
 .footer a{color:#ff9800;text-decoration:none}
+.copyright{margin-top:10px;font-size:11px;color:#666}
 .btn-row{display:flex;gap:10px;margin-top:10px}
 .btn-row .btn{flex:1 1 0;min-width:0}
 @media(max-width:480px){
@@ -139,14 +140,14 @@ input.error,select.error{border-color:#ff6b6b;background:#3a2020}
         <div class="error-msg" id="errEntrance">Укажите подъезд</div>
       </div>
       <div class="form-group" id="fieldFlat">
-        <label class="form-label" id="labelFlat">№ квартиры</label>
-        <select id="flat"><option value="">— выберите —</option></select>
-        <div class="error-msg" id="errFlat">Укажите номер квартиры</div>
+        <label class="form-label" id="labelFlat">№ квартиры <span class="opt">(1–168)</span></label>
+        <input type="number" id="flat" min="1" max="168" placeholder="Например: 42">
+        <div class="error-msg" id="errFlat">Введите номер квартиры от 1 до 168</div>
       </div>
       <div class="form-group" id="fieldFloor">
-        <label class="form-label" id="labelFloor">Этаж</label>
-        <select id="floor"><option value="">— выберите —</option></select>
-        <div class="error-msg" id="errFloor">Укажите этаж</div>
+        <label class="form-label" id="labelFloor">Этаж <span class="opt">(1–17)</span></label>
+        <input type="number" id="floor" min="1" max="17" placeholder="Например: 7">
+        <div class="error-msg" id="errFloor">Введите номер этажа от 1 до 17</div>
       </div>
     </div>
 
@@ -193,6 +194,7 @@ input.error,select.error{border-color:#ff6b6b;background:#3a2020}
     <p>Сервис — инициатива жителей дома Фитаревская 15к2. Не является официальным Порталом Москвы (MOS.RU) или ГИС ЖКХ.</p>
     <p style="margin-top:6px">Обращение отправляет сам жилец. Сервис лишь помогает составить текст и собрать статистику инцидентов для совета дома.</p>
     <p style="margin-top:6px;color:#ff6b6b">При пожаре или угрозе обрушения — звоните <a href="tel:112">112</a>.</p>
+    <p class="copyright">© 2026 CYV. Все права защищены.</p>
   </div>
 </div>
 
@@ -267,14 +269,6 @@ const CATEGORIES = {
       {id:'mold', name:'Плесень / грибок на стенах', needFlat:true, needFloor:true, emergency:false}
     ]
   },
-  gas: {
-    name: '🟡 Газоснабжение',
-    problems: [
-      {id:'gas_smell', name:'Запах газа', emergency:true},
-      {id:'no_gas', name:'Отсутствие газоснабжения', needFlat:true, needFloor:true, emergency:true},
-      {id:'gas_equipment', name:'Неисправность газового оборудования в МОП', needEntrance:true, emergency:true}
-    ]
-  },
   access: {
     name: '🚪 Двери, замки, домофон',
     problems: [
@@ -344,14 +338,7 @@ function initForm() {
   ENTRANCES.forEach(function(e){
     const o = document.createElement('option'); o.value = e; o.textContent = e; entSel.appendChild(o);
   });
-  const flatSel = document.getElementById('flat');
-  for (let i = 1; i <= TOTAL_FLATS; i++) {
-    const o = document.createElement('option'); o.value = i; o.textContent = '№ ' + i; flatSel.appendChild(o);
-  }
-  const floorSel = document.getElementById('floor');
-  for (let i = 1; i <= TOTAL_FLOORS; i++) {
-    const o = document.createElement('option'); o.value = i; o.textContent = i + ' этаж'; floorSel.appendChild(o);
-  }
+  // Квартира и этаж теперь — текстовые поля, заполнять не нужно
 }
 
 document.getElementById('category').addEventListener('change', function(){
@@ -381,6 +368,7 @@ document.getElementById('problem').addEventListener('change', function(){
   updateUI();
 });
 
+// Снятие ошибок при вводе (для всех полей, включая числовые)
 ['ukDate','ukNumber','entrance','flat','floor'].forEach(function(id){
   document.getElementById(id).addEventListener('input', function(){
     this.classList.remove('error');
@@ -401,7 +389,6 @@ document.querySelectorAll('input[name="recipient"]').forEach(function(r){
 function updateUI() {
   const recipient = document.querySelector('input[name="recipient"]:checked');
 
-  // поля жалобы (ГЖИ / Управа)
   const complaint = document.getElementById('complaintFields');
   if (recipient && (recipient.value === 'gzhi' || recipient.value === 'uprava')) {
     complaint.classList.remove('hidden');
@@ -409,12 +396,10 @@ function updateUI() {
     complaint.classList.add('hidden');
   }
 
-  // предупреждение аварийной службы
   const warn = document.getElementById('emergencyWarning');
   if (currentProblem && currentProblem.emergency) warn.classList.add('show');
   else warn.classList.remove('show');
 
-  // поля места
   const locBox = document.getElementById('locationFields');
   const fe = document.getElementById('fieldEntrance');
   const ff = document.getElementById('fieldFlat');
@@ -433,6 +418,15 @@ function updateUI() {
   validateForm();
 }
 
+// Валидация числового поля (квартира / этаж)
+function validateNumberField(id, min, max) {
+  const val = document.getElementById(id).value.trim();
+  if (!val) return false;
+  const n = parseInt(val, 10);
+  if (isNaN(n) || n < min || n > max) return false;
+  return true;
+}
+
 function validateForm() {
   const cat = document.getElementById('category').value;
   const prob = document.getElementById('problem').value;
@@ -448,8 +442,8 @@ function validateForm() {
   }
   if (currentProblem) {
     if (currentProblem.needEntrance && !document.getElementById('entrance').value) { btn.disabled = true; return; }
-    if (currentProblem.needFlat && !document.getElementById('flat').value) { btn.disabled = true; return; }
-    if (currentProblem.needFloor && !document.getElementById('floor').value) { btn.disabled = true; return; }
+    if (currentProblem.needFlat && !validateNumberField('flat', 1, TOTAL_FLATS)) { btn.disabled = true; return; }
+    if (currentProblem.needFloor && !validateNumberField('floor', 1, TOTAL_FLOORS)) { btn.disabled = true; return; }
   }
   btn.disabled = false;
 }
@@ -523,13 +517,13 @@ function generateText() {
   }
   if (currentProblem) {
     if (currentProblem.needEntrance && !document.getElementById('entrance').value) { markError('entrance','errEntrance'); valid = false; }
-    if (currentProblem.needFlat && !document.getElementById('flat').value) { markError('flat','errFlat'); valid = false; }
-    if (currentProblem.needFloor && !document.getElementById('floor').value) { markError('floor','errFloor'); valid = false; }
+    if (currentProblem.needFlat && !validateNumberField('flat', 1, TOTAL_FLATS)) { markError('flat','errFlat'); valid = false; }
+    if (currentProblem.needFloor && !validateNumberField('floor', 1, TOTAL_FLOORS)) { markError('floor','errFloor'); valid = false; }
   }
   if (!valid) return;
 
-  const flat = document.getElementById('flat').value;
-  const floor = document.getElementById('floor').value;
+  const flat = document.getElementById('flat').value.trim();
+  const floor = document.getElementById('floor').value.trim();
   const entrance = document.getElementById('entrance').value;
   const ukDate = document.getElementById('ukDate').value;
   const ukNumber = document.getElementById('ukNumber').value.trim();
@@ -560,7 +554,6 @@ function generateText() {
     }
   } else {
     const ukDateRu = isoToRu(ukDate);
-    const target = recipient.value === 'gzhi' ? 'ГЖИ' : 'Управу';
     text = 'Прошу провести проверку и принять меры в отношении бездействия ' + UK_NAME + '.'
       + '\n\nВ ' + ADDRESS + (loc ? ' (' + loc + ')' : '') + ' имеет место проблема: ' + name + '.'
       + detailsBlock
@@ -641,11 +634,14 @@ function sendToSheet() {
   const now = mskNow();
   const dateStr = ruDate(now) + ', ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
+  const flatVal = document.getElementById('flat').value.trim();
+  const floorVal = document.getElementById('floor').value.trim();
+
   const payload = {
     datetime: dateStr,
     entrance: document.getElementById('entrance').value || '—',
-    flat: document.getElementById('flat').value || '—',
-    floor: document.getElementById('floor').value || '—',
+    flat: flatVal ? '№' + flatVal : '—',
+    floor: floorVal || '—',
     category: catName,
     problem: currentProblem ? currentProblem.name : '—',
     recipient: RECIPIENT_NAMES[recipient.value],
@@ -658,7 +654,6 @@ function sendToSheet() {
   status.className = 'status-msg';
   status.style.display = 'none';
 
-  // mode:'no-cors' — ответ не читается, но запись в таблицу происходит
   fetch(SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
